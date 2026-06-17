@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Приглашение на свидание</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Unbounded:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    color-scheme:dark;
+    --ember-1:#FF8A3D;
+    --ember-2:#FF5E3A;
+    --violet:#7C5CFF;
+    --violet-soft:rgba(124,92,255,.16);
+    --text:#F3EFFB;
+    --muted:#A39DBC;
+    --card-bg:rgba(32,26,52,.66);
+    --line:rgba(255,255,255,.12);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;margin:0;}
+  body{
+    font-family:'Manrope',system-ui,sans-serif;
+    color:var(--text);
+    background:
+      radial-gradient(120% 80% at 12% 8%, rgba(124,92,255,.28), transparent 55%),
+      radial-gradient(120% 90% at 92% 95%, rgba(255,106,61,.22), transparent 55%),
+      linear-gradient(160deg,#161325 0%,#1E1530 50%,#241733 100%);
+    min-height:100dvh;
+    display:flex;align-items:center;justify-content:center;
+    padding:20px;overflow:hidden;position:relative;
+  }
+
+  /* ----- фоновые искры ----- */
+  .ambient{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;}
+  .ambient span{position:absolute;bottom:-40px;font-size:22px;opacity:.5;
+    animation:rise linear infinite;filter:drop-shadow(0 0 6px rgba(255,140,80,.4));}
+  @keyframes rise{
+    0%{transform:translateY(0) rotate(0);opacity:0;}
+    10%{opacity:.6;}
+    90%{opacity:.6;}
+    100%{transform:translateY(-115dvh) rotate(40deg);opacity:0;}
+  }
+
+  /* ----- карточка ----- */
+  .card{
+    position:relative;z-index:2;width:100%;max-width:380px;
+    background:var(--card-bg);
+    -webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);
+    border:1px solid var(--line);border-radius:30px;padding:36px 26px 32px;
+    box-shadow:0 30px 70px -25px rgba(0,0,0,.65), inset 0 1px 0 rgba(255,255,255,.07);
+    text-align:center;
+  }
+  .screen{display:none;animation:in .45s ease both;}
+  .screen.active{display:block;}
+  @keyframes in{from{opacity:0;transform:translateY(14px) scale(.98);}to{opacity:1;transform:none;}}
+
+  .emoji-hero{font-size:60px;line-height:1;margin-bottom:14px;
+    animation:bob 2.6s ease-in-out infinite;
+    filter:drop-shadow(0 6px 18px rgba(255,106,61,.35));}
+  @keyframes bob{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
+
+  h1{font-family:'Unbounded',sans-serif;font-weight:700;color:var(--text);
+    font-size:21px;line-height:1.32;letter-spacing:-.01em;margin:6px 0 8px;}
+  .sub{color:var(--muted);font-size:15px;margin:0 0 22px;font-weight:600;}
+
+  /* ----- кнопки ----- */
+  .btn{
+    border:none;cursor:pointer;font-family:'Manrope';font-weight:800;
+    color:#fff;font-size:17px;
+    background:linear-gradient(135deg,var(--ember-1),var(--ember-2));
+    padding:15px 30px;border-radius:40px;
+    transition:transform .18s,filter .18s,box-shadow .18s,opacity .25s;
+    box-shadow:0 14px 32px -12px rgba(255,94,58,.65);
+  }
+  .btn:hover{filter:brightness(1.08);transform:translateY(-1px);}
+  .btn:active{transform:scale(.96);}
+  .btn:focus-visible{outline:3px solid var(--ember-1);outline-offset:3px;}
+  .btn.full{width:100%;}
+
+  .choices{position:relative;min-height:64px;display:flex;gap:14px;
+    align-items:center;justify-content:center;flex-wrap:wrap;}
+  .btn-no{
+    background:rgba(255,255,255,.06);color:var(--muted);
+    border:1px solid var(--line);box-shadow:none;
+    transition:transform .2s,opacity .25s,background .2s;
+  }
+  .btn-no:hover{background:rgba(255,255,255,.10);filter:none;transform:none;}
+
+  /* ----- сетка еды ----- */
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:22px;}
+  .chip{
+    border:1px solid var(--line);background:rgba(255,255,255,.04);border-radius:18px;
+    padding:14px 8px;cursor:pointer;transition:all .15s;color:var(--text);
+    display:flex;flex-direction:column;align-items:center;gap:6px;
+  }
+  .chip .e{font-size:30px;}
+  .chip .l{font-size:14px;font-weight:700;}
+  .chip:hover{border-color:rgba(124,92,255,.5);}
+  .chip.selected{border-color:var(--violet);background:var(--violet-soft);
+    box-shadow:0 8px 26px -10px rgba(124,92,255,.6);transform:scale(1.03);}
+  .chip:focus-visible{outline:3px solid var(--violet);outline-offset:2px;}
+
+  /* ----- дата/время ----- */
+  .fields{display:flex;gap:12px;margin-bottom:22px;}
+  .field{flex:1;text-align:left;}
+  .field label{display:block;font-size:13px;font-weight:700;color:var(--muted);margin:0 0 6px 4px;}
+  .field input{
+    width:100%;border:1px solid var(--line);border-radius:14px;padding:12px;
+    font-family:'Manrope';font-size:15px;font-weight:700;color:#fff;
+    background:rgba(255,255,255,.05);text-align:center;
+  }
+  .field input:focus{outline:none;border-color:var(--violet);background:rgba(255,255,255,.09);}
+
+  .final-msg{background:rgba(255,138,61,.10);border:1px solid rgba(255,138,61,.24);
+    border-radius:18px;padding:18px 16px;font-size:16px;font-weight:700;
+    line-height:1.5;color:var(--text);margin:6px 0 14px;}
+  .final-msg b{color:#FFB07A;}
+  .closing{color:var(--muted);font-weight:700;font-size:15px;margin:0;line-height:1.5;}
+
+  .btn[disabled]{opacity:.4;cursor:not-allowed;box-shadow:none;filter:grayscale(.3);}
+
+  .btn.secondary{background:rgba(124,92,255,.16);color:#D9D2FF;box-shadow:none;
+    border:1px solid rgba(124,92,255,.45);}
+  .btn.secondary:hover{background:rgba(124,92,255,.26);filter:none;transform:translateY(-1px);}
+
+  .actions{display:flex;flex-direction:column;gap:10px;margin:4px 0 14px;}
+  .tg-hint{color:var(--muted);font-size:12px;font-weight:700;margin:-4px 0 0;min-height:14px;}
+  .linklike{background:none;border:none;color:var(--muted);font-family:'Manrope';
+    font-weight:700;font-size:13px;cursor:pointer;text-decoration:underline;
+    padding:6px;align-self:center;}
+  .linklike:hover{color:var(--text);}
+
+  .mute{position:absolute;top:14px;right:14px;z-index:5;
+    background:rgba(255,255,255,.08);border:1px solid var(--line);color:var(--text);
+    width:36px;height:36px;border-radius:50%;font-size:15px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;line-height:1;}
+  .mute:hover{background:rgba(255,255,255,.14);}
+
+  @media (prefers-reduced-motion: reduce){
+    .ambient,.emoji-hero{animation:none;}
+    .screen{animation:none;}
+  }
+</style>
+</head>
+<body>
+
+<div class="ambient" id="ambient"></div>
+
+<div class="card">
+
+  <button class="mute" id="muteBtn" onclick="toggleSound()" aria-label="Звук">🔊</button>
+
+  <!-- 0. Конверт -->
+  <section class="screen active" id="s0">
+    <div class="emoji-hero">💌</div>
+    <h1 id="introTitle">Тебе кое-что прислали</h1>
+    <p class="sub">Откроешь?</p>
+    <button class="btn full" onclick="openEnvelope()">Открыть ✨</button>
+  </section>
+
+  <!-- 1. Да / Нет -->
+  <section class="screen" id="s1">
+    <div class="emoji-hero">🌃</div>
+    <h1 id="askTitle">Пойдёшь со мной на свидание?</h1>
+    <p class="sub">только честно 👀</p>
+    <div class="choices" id="choices">
+      <button class="btn" id="yesBtn" onclick="go('s2')">Да</button>
+      <button class="btn btn-no" id="noBtn">Нет</button>
+    </div>
+  </section>
+
+  <!-- 2. Точно да? -->
+  <section class="screen" id="s2">
+    <div class="emoji-hero">😻</div>
+    <h1>Стоп… ты правда сказал «да»?</h1>
+    <p class="sub">я уже готовился к «нет» 😅</p>
+    <button class="btn full" onclick="go('s3')">Да, да, ДА!</button>
+  </section>
+
+  <!-- 3. Еда -->
+  <section class="screen" id="s3">
+    <h1>Чего тебе хочется?</h1>
+    <p class="sub">выбери, что зайдёт</p>
+    <div class="grid" id="foodGrid"></div>
+    <button class="btn full" id="foodNext" disabled onclick="go('splace')">Дальше →</button>
+  </section>
+
+  <!-- 3.5 Где встретимся -->
+  <section class="screen" id="splace">
+    <div class="emoji-hero">🗺️</div>
+    <h1>Куда пойдём?</h1>
+    <p class="sub">выбери вайб — можно несколько</p>
+    <div class="grid" id="placeGrid"></div>
+    <button class="btn full" id="placeNext" disabled onclick="go('s4')">Дальше →</button>
+  </section>
+
+  <!-- 4. Дата / время -->
+  <section class="screen" id="s4">
+    <div class="emoji-hero">🗓️</div>
+    <h1>Тогда… когда ты свободен?</h1>
+    <div class="fields">
+      <div class="field">
+        <label>Дата</label>
+        <input type="date" id="dateInp">
+      </div>
+      <div class="field">
+        <label>Время</label>
+        <input type="time" id="timeInp">
+      </div>
+    </div>
+    <button class="btn full" id="dateNext" disabled onclick="finish()">Готово ✨</button>
+  </section>
+
+  <!-- 5. Финал -->
+  <section class="screen" id="s5">
+    <div class="emoji-hero">🥰</div>
+    <h1>Ну всё, я счастлив</h1>
+    <div class="final-msg" id="finalMsg"></div>
+    <div class="actions">
+      <button class="btn full" onclick="sendTelegram()">Ответить в Telegram ✈️</button>
+      <p class="tg-hint" id="tgHint"></p>
+      <button class="btn full secondary" onclick="addToCalendar()">Добавить в календарь 🗓️</button>
+      <button class="linklike" id="copyBtn" onclick="copyReply()">или скопировать ответ</button>
+    </div>
+    <p class="closing" id="closing">До встречи ✨</p>
+  </section>
+
+</div>
+
+<script>
+/* ============ НАСТРОЙКА (меняй под себя) ============ */
+const CONFIG = {
+  recipientName: "Илья",                    // имя адресата. Пусто = без имени
+  senderName: "Андрей",                     // твоё имя (подпись на финале)
+  senderTelegram: "https://t.me/aanddrey",  // твой Telegram (куда ведёт кнопка ответа)
+  finalClosing: "До встречи ✨",             // строка над подписью
+  // Текст — мужской род (свободен / сказал / готов).
+};
+
+const FOODS = [
+  {e:"🍕",l:"Пицца"}, {e:"🍣",l:"Суши"},
+  {e:"🍔",l:"Бургер"}, {e:"🍝",l:"Паста"},
+  {e:"🍜",l:"Ролтон"}, {e:"🍲",l:"Рамен"},
+];
+/* =================================================== */
+
+// имя в заголовки
+if (CONFIG.recipientName.trim()){
+  const n = CONFIG.recipientName.trim();
+  introTitle.textContent = `${n}, тебе кое-что прислали`;
+  askTitle.textContent   = `${n}, пойдёшь со мной на свидание?`;
+}
+closing.innerHTML = CONFIG.finalClosing +
+  (CONFIG.senderName && CONFIG.senderName.trim() ? `<br>— ${CONFIG.senderName.trim()} 💛` : "");
+
+// переход между экранами
+function go(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ---- кнопка «Нет», которая сдаётся ----
+const noBtn = document.getElementById('noBtn');
+const yesBtn = document.getElementById('yesBtn');
+const NO_LINES = [
+  "точно нет?",
+  "уверен? 🤔",
+  "подумай ещё разок",
+  "ну я же старался…",
+  "будет вкусно, обещаю 🍔",
+  "последний шанс…"
+];
+let noStep = 0, yesScale = 1;
+
+function tease(e){
+  if(e) e.preventDefault();
+  if(noStep < NO_LINES.length){
+    noBtn.textContent = NO_LINES[noStep];
+    noStep++;
+    yesScale = Math.min(1.45, yesScale + 0.1);
+    yesBtn.style.transform = `scale(${yesScale})`;
+    noBtn.style.opacity = String(Math.max(0.35, 1 - noStep * 0.12));
+    noBtn.style.transform = `scale(${Math.max(0.72, 1 - noStep * 0.05)})`;
+  } else {
+    // сдался — исчезает, «Да» во всю ширину
+    noBtn.style.opacity = '0';
+    noBtn.style.transform = 'scale(.4)';
+    setTimeout(() => { noBtn.style.display = 'none'; }, 250);
+    yesBtn.style.transform = 'none';
+    yesBtn.classList.add('full');
+    yesBtn.textContent = 'Ну наконец-то, ДА 🔥';
+  }
+}
+noBtn.addEventListener('click', tease);
+
+// ====== ВАРИАНТЫ «ГДЕ ВСТРЕТИМСЯ» (меняй под себя) ======
+const PLACES = [
+  {e:"🍸",l:"Бар"},      {e:"☕",l:"Кафе"},
+  {e:"🌆",l:"Прогулка"}, {e:"🎬",l:"Кино"},
+  {e:"🎤",l:"Караоке"},  {e:"🎲",l:"На твой выбор"},
+];
+
+// ---- выбор чипсов (еда + место) ----
+const pickedFood  = new Set();
+const pickedPlace = new Set();
+function renderChips(arr, gridId, set, nextBtn){
+  const grid = document.getElementById(gridId);
+  arr.forEach((f,i)=>{
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'chip';
+    b.innerHTML = `<span class="e">${f.e}</span><span class="l">${f.l}</span>`;
+    b.onclick = ()=>{
+      if(set.has(i)){ set.delete(i); b.classList.remove('selected'); }
+      else { set.add(i); b.classList.add('selected'); }
+      nextBtn.disabled = set.size === 0;
+      pick();
+    };
+    grid.appendChild(b);
+  });
+}
+renderChips(FOODS,  'foodGrid',  pickedFood,  document.getElementById('foodNext'));
+renderChips(PLACES, 'placeGrid', pickedPlace, document.getElementById('placeNext'));
+
+// ---- активация кнопки даты ----
+const dateInp = document.getElementById('dateInp');
+const timeInp = document.getElementById('timeInp');
+dateInp.addEventListener('input', ()=>{
+  document.getElementById('dateNext').disabled = !dateInp.value;
+});
+
+// ---- дата → текст ----
+const MONTHS = ['января','февраля','марта','апреля','мая','июня',
+                'июля','августа','сентября','октября','ноября','декабря'];
+function fmtDate(iso){
+  const [y,m,d] = iso.split('-').map(Number);
+  return `${d} ${MONTHS[m-1]} ${y} г.`;
+}
+
+// ---- финал ----
+let replyText = '';
+function finish(){
+  const foodList   = [...pickedFood ].map(i=>FOODS[i].e  + ' ' + FOODS[i].l);
+  const placeList  = [...pickedPlace].map(i=>PLACES[i].e + ' ' + PLACES[i].l);
+  const foodEmojis = [...pickedFood ].map(i=>FOODS[i].e).join(' ');
+
+  let msg = `Будь готов к <b>${fmtDate(dateInp.value)}</b>`;
+  if(timeInp.value) msg += ` в <b>${timeInp.value}</b>`;
+  msg += `. Я заеду за тобой ${foodEmojis}`;
+  document.getElementById('finalMsg').innerHTML = msg;
+
+  // ответ Ильи → Андрею (для Telegram / копирования)
+  const name = (CONFIG.senderName || '').trim();
+  let r = (name ? name + ', ' : '') + 'я за! 🔥\n';
+  if(foodList.length)  r += 'Хочу: ' + foodList.join(', ')  + '\n';
+  if(placeList.length) r += 'Где: '  + placeList.join(', ') + '\n';
+  r += 'Когда: ' + fmtDate(dateInp.value) + (timeInp.value ? ', ' + timeInp.value : '');
+  replyText = r;
+
+  go('s5');
+  chime();
+  burst();
+}
+
+// ---- ответить в Telegram (копируем ответ + открываем твой чат) ----
+function sendTelegram(){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(replyText).catch(()=>fallbackCopy(replyText));
+  } else {
+    fallbackCopy(replyText);
+  }
+  const hint = document.getElementById('tgHint');
+  if(hint) hint.textContent = 'Ответ скопирован — вставь его в чат 📋';
+  window.open(CONFIG.senderTelegram, '_blank');
+}
+
+// ---- скопировать ответ ----
+function copyReply(){
+  const btn = document.getElementById('copyBtn');
+  const done = ()=>{ btn.textContent = 'скопировано ✓';
+    setTimeout(()=>{ btn.textContent = 'или скопировать ответ'; }, 1800); };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(replyText).then(done).catch(()=>fallbackCopy(replyText, done));
+  } else { fallbackCopy(replyText, done); }
+}
+function fallbackCopy(text, cb){
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); }catch(e){}
+  ta.remove(); if(cb) cb();
+}
+
+// ---- добавить в календарь (.ics) ----
+function addToCalendar(){
+  const blob = new Blob([buildICS()], {type:'text/calendar;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'svidanie.ics';
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+function buildICS(){
+  const pad = n => String(n).padStart(2,'0');
+  const [y,m,d] = dateInp.value.split('-').map(Number);
+  const sender = (CONFIG.senderName || '').trim() || 'Андреем';
+  const foods  = [...pickedFood ].map(i=>FOODS[i].l).join(', ');
+  const places = [...pickedPlace].map(i=>PLACES[i].l).join(', ');
+  const desc = [foods ? 'Еда: ' + foods : '', places ? 'Формат: ' + places : '']
+                 .filter(Boolean).join('\\n');
+  const stamp = new Date().toISOString().replace(/[-:]/g,'').split('.')[0] + 'Z';
+  let dtstart, dtend;
+  if(timeInp.value){
+    const [hh,mm] = timeInp.value.split(':').map(Number);
+    const s = new Date(y, m-1, d, hh, mm);
+    const e = new Date(s.getTime() + 2*60*60*1000);
+    const f = x => `${x.getFullYear()}${pad(x.getMonth()+1)}${pad(x.getDate())}T${pad(x.getHours())}${pad(x.getMinutes())}00`;
+    dtstart = 'DTSTART:' + f(s);
+    dtend   = 'DTEND:'   + f(e);
+  } else {
+    const n = new Date(y, m-1, d+1);
+    dtstart = 'DTSTART;VALUE=DATE:' + `${y}${pad(m)}${pad(d)}`;
+    dtend   = 'DTEND;VALUE=DATE:'   + `${n.getFullYear()}${pad(n.getMonth()+1)}${pad(n.getDate())}`;
+  }
+  return [
+    'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//svidanie//RU','CALSCALE:GREGORIAN',
+    'BEGIN:VEVENT',
+    'UID:' + Date.now() + '@svidanie',
+    'DTSTAMP:' + stamp,
+    dtstart, dtend,
+    'SUMMARY:Свидание с ' + sender,
+    desc ? 'DESCRIPTION:' + desc : '',
+    'END:VEVENT','END:VCALENDAR'
+  ].filter(Boolean).join('\r\n');
+}
+
+// ---- звук (Web Audio, без файлов) ----
+let soundOn = true;
+let _actx = null;
+function ac(){ if(!_actx) _actx = new (window.AudioContext || window.webkitAudioContext)(); return _actx; }
+function blip(freq, dur, type, vol){
+  if(!soundOn) return;
+  try{
+    const a = ac();
+    if(a.state === 'suspended') a.resume();
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = type || 'sine'; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol || 0.05, a.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + dur);
+    o.connect(g); g.connect(a.destination);
+    o.start(); o.stop(a.currentTime + dur);
+  }catch(e){}
+}
+function click(){ blip(520, 0.06, 'triangle', 0.05); }
+function pick(){  blip(680, 0.07, 'sine', 0.05); }
+function chime(){
+  if(!soundOn) return;
+  [523, 659, 784, 1047].forEach((f,i)=> setTimeout(()=>blip(f, 0.2, 'sine', 0.06), i*110));
+}
+function toggleSound(){
+  soundOn = !soundOn;
+  document.getElementById('muteBtn').textContent = soundOn ? '🔊' : '🔇';
+  if(soundOn){ click(); startMusic(); }
+  else { stopMusic(); }
+}
+// звук на всех основных кнопках
+document.addEventListener('click', e=>{ if(e.target.closest('.btn')) click(); });
+
+// ---- фоновая музыка (генеративная, без файлов) ----
+let musicStarted = false, musicTimer = null, musicGain = null;
+function startMusic(){
+  if(musicStarted || !soundOn) return;
+  const a = ac();
+  if(a.state === 'suspended') a.resume();
+  musicStarted = true;
+  musicGain = a.createGain();
+  musicGain.gain.setValueAtTime(0.0001, a.currentTime);
+  musicGain.gain.linearRampToValueAtTime(0.12, a.currentTime + 2.5); // громкость музыки (0.0–0.3)
+  musicGain.connect(a.destination);
+
+  const chords = [
+    [261.63, 329.63, 392.00, 493.88], // C
+    [220.00, 261.63, 329.63, 392.00], // Am
+    [174.61, 220.00, 261.63, 349.23], // F
+    [196.00, 246.94, 293.66, 392.00], // G
+  ];
+  const dur = 2.8;
+  let idx = 0;
+  function chord(){
+    if(!soundOn || !musicGain) return;
+    const t = ac().currentTime;
+    chords[idx].forEach((f,i)=>{
+      const o = ac().createOscillator(), g = ac().createGain();
+      o.type = i === 0 ? 'triangle' : 'sine';
+      o.frequency.value = f;
+      const peak = 0.13 / (i + 1.3);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(peak, t + 0.7);
+      g.gain.linearRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(musicGain);
+      o.start(t); o.stop(t + dur + 0.1);
+    });
+    idx = (idx + 1) % chords.length;
+  }
+  chord();
+  musicTimer = setInterval(chord, dur * 1000);
+}
+function stopMusic(){
+  if(musicTimer){ clearInterval(musicTimer); musicTimer = null; }
+  if(musicGain){
+    try{ musicGain.gain.linearRampToValueAtTime(0.0001, ac().currentTime + 0.4); }catch(e){}
+    const g = musicGain; musicGain = null;
+    setTimeout(()=>{ try{ g.disconnect(); }catch(e){} }, 600);
+  }
+  musicStarted = false;
+}
+
+// ---- открытие конверта ----
+function openEnvelope(){
+  startMusic();
+  const h = document.querySelector('#s0 .emoji-hero');
+  h.style.transition = 'transform .4s ease, opacity .4s ease';
+  h.style.transform = 'scale(1.6) rotate(8deg)';
+  h.style.opacity = '0';
+  setTimeout(()=>go('s1'), 380);
+}
+
+// ---- салют на финале ----
+function burst(){
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const amb = document.getElementById('ambient');
+  for(let i=0;i<32;i++){
+    const h = document.createElement('span');
+    h.textContent = ['🔥','✨','💫','🧡'][Math.floor(Math.random()*4)];
+    h.style.left = Math.random()*100 + 'vw';
+    h.style.fontSize = (18 + Math.random()*26) + 'px';
+    h.style.animationDuration = (3 + Math.random()*3) + 's';
+    amb.appendChild(h);
+    setTimeout(()=>h.remove(), 6500);
+  }
+}
+
+// ---- фоновые искры ----
+(function ambientSparks(){
+  const amb = document.getElementById('ambient');
+  const set = ['✨','💫','⭐'];
+  for(let i=0;i<14;i++){
+    const h = document.createElement('span');
+    h.textContent = set[i%set.length];
+    h.style.left = Math.random()*100 + 'vw';
+    h.style.fontSize = (16 + Math.random()*22) + 'px';
+    h.style.animationDuration = (7 + Math.random()*7) + 's';
+    h.style.animationDelay = (Math.random()*8) + 's';
+    amb.appendChild(h);
+  }
+})();
+</script>
+</body>
+</html>
